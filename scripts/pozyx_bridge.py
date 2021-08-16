@@ -34,8 +34,13 @@ class PozyxBridge(object):
         self.client = mqtt.Client()  # create new instance
         self.pub = rospy.Publisher('uwb_sensor', TransformStamped, queue_size=10)
         self.transform_msg = TransformStamped()
+        self.timer = rospy.Timer(rospy.Duration(0.1), self.time_record)
 
     # MQTT client setup
+    def time_record(self, event):
+        self.transform_msg.header.stamp = rospy.Time.now()
+        rospy.loginfo(self.transform_msg)
+        self.pub.publish(self.transform_msg)
 
     def setup_client(self):
         self.client.on_connect = self.on_connect
@@ -50,9 +55,6 @@ class PozyxBridge(object):
         rate = rospy.Rate(10)  # 10hz
 
         while not rospy.is_shutdown():
-            self.transform_msg.header.stamp = rospy.Time.now()
-            rospy.loginfo(self.transform_msg)
-            self.pub.publish(self.transform_msg)
             rate.sleep()
 
     def on_message(self, client, userdata, message):
