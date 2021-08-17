@@ -34,12 +34,12 @@ class PozyxBridge(object):
         self.logY = 0
         self.logZ = 0
         # self.tags = {"tagId": "-", "logX": logX, "logY": logY, "logZ": logZ}
-        self.tagli = []
-        self.tagdic = []
+        self.tagdic = {}
         # Publisher
         self.client = mqtt.Client()  # create new instance
         self.pub = rospy.Publisher('uwb_sensor', TransformStamped, queue_size=10)
         self.transform_msg = TransformStamped()
+        self.transform_msg.header.frame_id = "world"
         self.timer = rospy.Timer(rospy.Duration(0.1), self.time_record)
         self.br = tf2_ros.TransformBroadcaster()
 
@@ -48,10 +48,10 @@ class PozyxBridge(object):
         if not self.is_data_available:
             return
         self.transform_msg.header.stamp = rospy.Time.now()
-        rospy.loginfo(self.transform_msg)
+        # rospy.loginfo(self.transform_msg)
         self.pub.publish(self.transform_msg)
         self.br.sendTransform(self.transform_msg)
-        print(self.tagli)
+        # print(self.tagdic.keys())
 
     def setup_client(self):
         self.client.on_connect = self.on_connect
@@ -79,30 +79,31 @@ class PozyxBridge(object):
         z = re.search(r'(?:"z":)(-\d+|\d+)', message.payload.decode())
         Id = int(tagId.group(2))
 
-        if Id not in self.tagli:
-            self.tagli.append(Id)
-            self.tagdic.append({"tagId": Id, "logX": 0, "logY": 0, "logZ": 0})
+        if Id not in self.tagdic.keys():
+            self.tagdic[Id] = {"logX": 0, "logY": 0, "logZ": 0}
             # self.tags["tagId"] = Id
 
-        for tag in self.tagdic:
-            if tag.get('tagId') == Id:
-                if x is not None:
+        else:
+            if x is not None:
+                self.transform_msg.child_frame_id = "UWB_tag/" + str(Id)
+                self.tagdic[Id]["logX"] = int(x.group(1))
+                self.tagdic[Id]["logY"] = int(y.group(1))
+                self.tagdic[Id]["logZ"] = int(z.group(1))
 
-                    tag["logX"] = int(x.group(1))
-                    tag["logY"] = int(y.group(1))
-                    tag["logZ"] = int(z.group(1))
+                self.transform_msg.transform.translation.x = self.tagdic[Id]["logX"]/1000.0
+                self.transform_msg.transform.translation.y = self.tagdic[Id]["logY"]/1000.0
+                self.transform_msg.transform.translation.z = self.tagdic[Id]["logZ"]/1000.0
+                self.transform_msg.transform.rotation.w = 1
 
-                    self.transform_msg.transform.translation.x = tag["logX"]
-                    self.transform_msg.transform.translation.y = tag["logY"]
-                    self.transform_msg.transform.translation.z = tag["logZ"]
+                if not self.is_data_available:
+                    self.is_data_available = True
 
-                    if not self.is_data_available:
-                        self.is_data_available = True
-
-                else:
-                    self.transform_msg.transform.translation.x = tag["logX"]
-                    self.transform_msg.transform.translation.y = tag["logY"]
-                    self.transform_msg.transform.translation.z = tag["logZ"]
+            else:
+                self.transform_msg.child_frame_id = "UWB_tag/" + str(Id)
+                self.transform_msg.transform.translation.x = self.tagdic[Id]["logX"]/1000.0
+                self.transform_msg.transform.translation.y = self.tagdic[Id]["logY"]/1000.0
+                self.transform_msg.transform.translation.z = self.tagdic[Id]["logZ"]/1000.0
+                self.transform_msg.transform.rotation.w = 1
 
         # rospy.loginfo(self.transform_msg)
         # self.pub.publish(self.transform_msg)
@@ -115,14 +116,13 @@ class PozyxBridge(object):
 
 
 if __name__ == '__main__':
-    rospy.init_node('pozyx_bridge', anonymous=True)
+    rospy.init_node('pozyx_bridge')
     try:
 
         # while not rospy.is_shutdown():
         pozyx_bridge = PozyxBridge()
         pozyx_bridge.setup_client()
         pozyx_bridge.run()
-
 
     except rospy.ROSInterruptException:
         pass
