@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # license removed for brevity
 import rospy
+import tf2_ros
+
 import paho.mqtt.client as mqtt
 import time
 import sys
@@ -25,22 +27,31 @@ tags = {"logX": logX, "logY": logY, "logZ": logZ}
 class PozyxBridge(object):
 
     def __init__(self):
+        # Flags
+        self.is_data_available = False
         # Setting initial position
         self.logX = 0
         self.logY = 0
         self.logZ = 0
-        self.tags = {"tagId": "-", "logX": logX, "logY": logY, "logZ": logZ}
+        # self.tags = {"tagId": "-", "logX": logX, "logY": logY, "logZ": logZ}
+        self.tagli = []
+        self.tagdic = []
         # Publisher
         self.client = mqtt.Client()  # create new instance
         self.pub = rospy.Publisher('uwb_sensor', TransformStamped, queue_size=10)
         self.transform_msg = TransformStamped()
         self.timer = rospy.Timer(rospy.Duration(0.1), self.time_record)
+        self.br = tf2_ros.TransformBroadcaster()
 
     # MQTT client setup
     def time_record(self, event):
+        if not self.is_data_available:
+            return
         self.transform_msg.header.stamp = rospy.Time.now()
         rospy.loginfo(self.transform_msg)
         self.pub.publish(self.transform_msg)
+        self.br.sendTransform(self.transform_msg)
+        print(self.tagli)
 
     def setup_client(self):
         self.client.on_connect = self.on_connect
@@ -66,20 +77,32 @@ class PozyxBridge(object):
         x = re.search(r'(?:"x":)(-\d+|\d+)', message.payload.decode())
         y = re.search(r'(?:"y":)(-\d+|\d+)', message.payload.decode())
         z = re.search(r'(?:"z":)(-\d+|\d+)', message.payload.decode())
-        self.tags["tagId"] = int(tagId.group(2))
-        if x is not None:
-            self.tags["logX"] = int(x.group(1))
-            self.tags["logY"] = int(y.group(1))
-            self.tags["logZ"] = int(z.group(1))
+        Id = int(tagId.group(2))
 
-            self.transform_msg.transform.translation.x = self.tags["logX"]
-            self.transform_msg.transform.translation.y = self.tags["logY"]
-            self.transform_msg.transform.translation.z = self.tags["logZ"]
-        else:
+        if Id not in self.tagli:
+            self.tagli.append(Id)
+            self.tagdic.append({"tagId": Id, "logX": 0, "logY": 0, "logZ": 0})
+            # self.tags["tagId"] = Id
 
-            self.transform_msg.transform.translation.x = self.tags["logX"]
-            self.transform_msg.transform.translation.y = self.tags["logY"]
-            self.transform_msg.transform.translation.z = self.tags["logZ"]
+        for tag in self.tagdic:
+            if tag.get('tagId') == Id:
+                if x is not None:
+
+                    tag["logX"] = int(x.group(1))
+                    tag["logY"] = int(y.group(1))
+                    tag["logZ"] = int(z.group(1))
+
+                    self.transform_msg.transform.translation.x = tag["logX"]
+                    self.transform_msg.transform.translation.y = tag["logY"]
+                    self.transform_msg.transform.translation.z = tag["logZ"]
+
+                    if not self.is_data_available:
+                        self.is_data_available = True
+
+                else:
+                    self.transform_msg.transform.translation.x = tag["logX"]
+                    self.transform_msg.transform.translation.y = tag["logY"]
+                    self.transform_msg.transform.translation.z = tag["logZ"]
 
         # rospy.loginfo(self.transform_msg)
         # self.pub.publish(self.transform_msg)
@@ -99,6 +122,7 @@ if __name__ == '__main__':
         pozyx_bridge = PozyxBridge()
         pozyx_bridge.setup_client()
         pozyx_bridge.run()
+
 
     except rospy.ROSInterruptException:
         pass
