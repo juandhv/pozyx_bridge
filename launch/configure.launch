@@ -1,0 +1,9 @@
+<launch>
+	<arg name="init" value= "true" />
+	<!-- Init -->
+	<group if= "$(arg init)">
+	    <rosparam command="load" file="$(find pozyx_bridge)/launch/config/pozyx_bridge_config.yaml" />
+	    <node name="pozyx_bridge" pkg="pozyx_bridge" type="pozyx_bridge.py" output="screen" />
+    </group>
+</launch>
+	

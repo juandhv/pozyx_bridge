@@ -1,0 +1,23 @@
+frame_id: "world"
+tag_list: ["tag1", "tag2", "tag3", "tag4" ]
+tag1:
+  name: "tag1"
+  child_frame_id: "pozyx/tag1"
+  id: 7762
+  
+tag2:
+  name: "tag2"
+  child_frame_id: "pozyx/tag2"
+  id: 7546
+  
+#tag3:
+#  name: "tag2"
+#  child_frame_id: "pozyx/tag3"
+#  id: 0000
+#
+#tag4:
+#  name: "tag2"
+#  child_frame_id: "pozyx/tag4"
+#  id: 0000
+  
+

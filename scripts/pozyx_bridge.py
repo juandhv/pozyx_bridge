@@ -2,6 +2,8 @@
 # license removed for brevity
 import rospy
 import tf2_ros
+import rosparam
+
 
 import paho.mqtt.client as mqtt
 import time
@@ -35,11 +37,16 @@ class PozyxBridge(object):
         self.logZ = 0
         # self.tags = {"tagId": "-", "logX": logX, "logY": logY, "logZ": logZ}
         self.tagdic = {}
+        # self.index = 0
+        self.taglist = rospy.get_param("/tag_list")
+        self.paramdic = {}
+        for i in self.taglist:
+            self.paramdic[rospy.get_param("/" + i + "/id")] = rospy.get_param("/" + i + "/name")
         # Publisher
         self.client = mqtt.Client()  # create new instance
         self.pub = rospy.Publisher('uwb_sensor', TransformStamped, queue_size=10)
         self.transform_msg = TransformStamped()
-        self.transform_msg.header.frame_id = "world"
+        self.transform_msg.header.frame_id = rospy.get_param("/frame_id")
         self.timer = rospy.Timer(rospy.Duration(0.1), self.time_record)
         self.br = tf2_ros.TransformBroadcaster()
 
@@ -69,27 +76,31 @@ class PozyxBridge(object):
             rate.sleep()
 
     def on_message(self, client, userdata, message):
-        # transform_msg = TransformStamped()
-        #
-        # self.transform_msg.header.stamp = rospy.Time.now()
 
         tagId = re.search(r'(\"tagId\"\:\")(\d+)', message.payload.decode())
         x = re.search(r'(?:"x":)(-\d+|\d+)', message.payload.decode())
         y = re.search(r'(?:"y":)(-\d+|\d+)', message.payload.decode())
         z = re.search(r'(?:"z":)(-\d+|\d+)', message.payload.decode())
         Id = int(tagId.group(2))
+        # Writing warning here ---
+
+        # rospy.set_param('tag1.yaml/id', Id)
 
         if Id not in self.tagdic.keys():
-            self.tagdic[Id] = {"logX": 0, "logY": 0, "logZ": 0}
+
+            self.tagdic[Id] = {"logX": 0, "logY": 0, "logZ": 0, "child_frame_id": 0, "name": "a"}
+            temtag = self.paramdic[Id]
+            self.tagdic[Id]["child_frame_id"] = rospy.get_param("/" + temtag + "/child_frame_id" )
+
             # self.tags["tagId"] = Id
 
         else:
             if x is not None:
-                self.transform_msg.child_frame_id = "UWB_tag/" + str(Id)
                 self.tagdic[Id]["logX"] = int(x.group(1))
                 self.tagdic[Id]["logY"] = int(y.group(1))
                 self.tagdic[Id]["logZ"] = int(z.group(1))
 
+                self.transform_msg.child_frame_id = self.tagdic[Id]["child_frame_id"]
                 self.transform_msg.transform.translation.x = self.tagdic[Id]["logX"]/1000.0
                 self.transform_msg.transform.translation.y = self.tagdic[Id]["logY"]/1000.0
                 self.transform_msg.transform.translation.z = self.tagdic[Id]["logZ"]/1000.0
@@ -99,7 +110,7 @@ class PozyxBridge(object):
                     self.is_data_available = True
 
             else:
-                self.transform_msg.child_frame_id = "UWB_tag/" + str(Id)
+                self.transform_msg.child_frame_id = self.tagdic[Id]["child_frame_id"]
                 self.transform_msg.transform.translation.x = self.tagdic[Id]["logX"]/1000.0
                 self.transform_msg.transform.translation.y = self.tagdic[Id]["logY"]/1000.0
                 self.transform_msg.transform.translation.z = self.tagdic[Id]["logZ"]/1000.0
