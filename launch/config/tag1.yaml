@@ -1,4 +1,0 @@
-id: 0
-name: "tag1"
-pose: {x: 0, y: 0, z: 0}
-tag_frame_id: "pozyx/tag1"
