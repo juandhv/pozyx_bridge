@@ -4,7 +4,6 @@ import rospy
 import tf2_ros
 import rosparam
 
-
 import paho.mqtt.client as mqtt
 import time
 import sys
@@ -32,10 +31,6 @@ class PozyxBridge(object):
         # Flags
         self.is_data_available = False
         # Setting initial position
-        self.logX = 0
-        self.logY = 0
-        self.logZ = 0
-        # self.tags = {"tagId": "-", "logX": logX, "logY": logY, "logZ": logZ}
         self.tagdic = {}
         # self.index = 0
         self.taglist = rospy.get_param("/tag_list")
@@ -45,26 +40,23 @@ class PozyxBridge(object):
         # Publisher
         self.client = mqtt.Client()  # create new instance
         self.pub = rospy.Publisher('uwb_sensor', TransformStamped, queue_size=10)
-        self.transform_msg = TransformStamped()
-        self.transform_msg.header.frame_id = rospy.get_param("/frame_id")
-        self.timer = rospy.Timer(rospy.Duration(0.1), self.time_record)
+        self.timer = rospy.Timer(rospy.Duration(1.0), self.time_record)
         self.br = tf2_ros.TransformBroadcaster()
 
-    # MQTT client setup
     def time_record(self, event):
-        if not self.is_data_available:
+        if not self.is_data_available is True:
             return
-        self.transform_msg.header.stamp = rospy.Time.now()
-        # rospy.loginfo(self.transform_msg)
-        self.pub.publish(self.transform_msg)
-        self.br.sendTransform(self.transform_msg)
-        # print(self.tagdic.keys())
+        for i in self.tagdic.keys():
+            # rospy.loginfo(self.tagdic[i])
+            self.tagdic[i].header.stamp = rospy.Time.now()
+            self.pub.publish(self.tagdic[i])
+            self.br.sendTransform(self.tagdic[i])
 
+    # MQTT client setup
     def setup_client(self):
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message  # attach function to callback
         self.client.on_subscribe = self.on_subscribe
-        # time.sleep(DURATION)  # wait for duration seconds
         self.client.connect(HOST, port=PORT)  # connect to host
         self.client.subscribe(TOPIC)  # subscribe to topic
 
@@ -83,41 +75,48 @@ class PozyxBridge(object):
         z = re.search(r'(?:"z":)(-\d+|\d+)', message.payload.decode())
         Id = int(tagId.group(2))
         # Writing warning here ---
-
-        # rospy.set_param('tag1.yaml/id', Id)
-
+        # pozyx_bridge.error_report(Id)
+        # flag = False
+        # if Id not in self.paramdic.keys():
+        #     rospy.logwarn("Active tag %s is not define in Parameter Id!", Id)
+        # for i in self.paramdic.keys():
+        #     if i not in self.tagdic.keys():
+        #         flag = True
+        # if flag:
+        #     rospy.logwarn("Parameter Id %s are not apply on all active tags", self.paramdic.keys())
+        if Id not in self.paramdic.keys():
+            rospy.logwarn("Active tag %s is not define in Parameter Id!", Id)
+            for i in self.paramdic.keys():
+                if i not in self.tagdic.keys():
+                    rospy.logwarn("Parameter Id %s are not active", i)
+            return
         if Id not in self.tagdic.keys():
-
-            self.tagdic[Id] = {"logX": 0, "logY": 0, "logZ": 0, "child_frame_id": 0, "name": "a"}
+            rospy.loginfo("Tag %s is now active", Id)
+            transform_msg = TransformStamped()
+            transform_msg.header.frame_id = rospy.get_param("/frame_id")
+            self.tagdic[Id] = transform_msg
             temtag = self.paramdic[Id]
-            self.tagdic[Id]["child_frame_id"] = rospy.get_param("/" + temtag + "/child_frame_id" )
-
-            # self.tags["tagId"] = Id
+            self.tagdic[Id].child_frame_id = rospy.get_param("/" + temtag + "/child_frame_id")
 
         else:
             if x is not None:
-                self.tagdic[Id]["logX"] = int(x.group(1))
-                self.tagdic[Id]["logY"] = int(y.group(1))
-                self.tagdic[Id]["logZ"] = int(z.group(1))
+                self.tagdic[Id].transform.translation.x = int(x.group(1)) / 1000.0
+                self.tagdic[Id].transform.translation.y = int(y.group(1)) / 1000.0
+                self.tagdic[Id].transform.translation.z = int(z.group(1)) / 1000.0
+                self.tagdic[Id].transform.rotation.w = 1
 
-                self.transform_msg.child_frame_id = self.tagdic[Id]["child_frame_id"]
-                self.transform_msg.transform.translation.x = self.tagdic[Id]["logX"]/1000.0
-                self.transform_msg.transform.translation.y = self.tagdic[Id]["logY"]/1000.0
-                self.transform_msg.transform.translation.z = self.tagdic[Id]["logZ"]/1000.0
-                self.transform_msg.transform.rotation.w = 1
+                # self.tagdic[Id].child_frame_id = self.tagdic[Id]["child_frame_id"]
+                # self.transform_msg.transform.translation.x = self.tagdic[Id]["logX"] / 1000.0
+                # self.transform_msg.transform.translation.y = self.tagdic[Id]["logY"] / 1000.0
+                # self.transform_msg.transform.translation.z = self.tagdic[Id]["logZ"] / 1000.0
+                # self.transform_msg.transform.rotation.w = 1
 
                 if not self.is_data_available:
                     self.is_data_available = True
 
-            else:
-                self.transform_msg.child_frame_id = self.tagdic[Id]["child_frame_id"]
-                self.transform_msg.transform.translation.x = self.tagdic[Id]["logX"]/1000.0
-                self.transform_msg.transform.translation.y = self.tagdic[Id]["logY"]/1000.0
-                self.transform_msg.transform.translation.z = self.tagdic[Id]["logZ"]/1000.0
-                self.transform_msg.transform.rotation.w = 1
-
-        # rospy.loginfo(self.transform_msg)
-        # self.pub.publish(self.transform_msg)
+        for i in self.paramdic.keys():
+            if i not in self.tagdic.keys():
+                rospy.logwarn("Parameter Id %s are not active", i)
 
     def on_connect(self, client, userdata, flags, rc):
         print(mqtt.connack_string(rc))
@@ -129,8 +128,6 @@ class PozyxBridge(object):
 if __name__ == '__main__':
     rospy.init_node('pozyx_bridge')
     try:
-
-        # while not rospy.is_shutdown():
         pozyx_bridge = PozyxBridge()
         pozyx_bridge.setup_client()
         pozyx_bridge.run()
