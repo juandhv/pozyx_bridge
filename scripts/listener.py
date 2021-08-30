@@ -1,44 +1,32 @@
-#!/usr/bin/env python
-import rospy
-from std_msgs.msg import String
-import tf2_ros
+from pypozyx import PozyxSerial, get_first_pozyx_serial_port, POZYX_SUCCESS, SingleRegister, EulerAngles, Acceleration
+# initalize the Pozyx as above
+from pypozyx import PozyxSerial, get_first_pozyx_serial_port
 
-from geometry_msgs.msg import TransformStamped
+serial_port = get_first_pozyx_serial_port()
 
+if serial_port is not None:
+    pozyx = PozyxSerial(serial_port)
+    print("Connection success!")
+else:
+    print("No Pozyx port was found")
 
-class Listener(object):
+# initialize the data container
+who_am_i = SingleRegister()
+# get the data, passing along the container
+status = pozyx.getWhoAmI(who_am_i)
 
-    def __init__(self):
-        self.tfBuffer = tf2_ros.Buffer()
-        self.listener = tf2_ros.TransformListener(tfBuffer)
+# check the status to see if the read was successful. Handling failure is covered later.
+if status == POZYX_SUCCESS:
+    # print the container. Note how a SingleRegister will print as a hex string by default.
+    print(who_am_i) # will print '0x43'
 
-    def callback(data):
-        transform_msg = TransformStamped()
-        rospy.loginfo(rospy.get_caller_id() + "I heard %s", data)
+# and repeat
+# initialize the data container
+acceleration = Acceleration()
+# get the data, passing along the container
+pozyx.getAcceleration_mg(acceleration)
 
-    def listener():
-
-
-        # In ROS, nodes are uniquely named. If two nodes with the same
-        # name are launched, the previous one is kicked off. The
-        # anonymous=True flag means that rospy will choose a unique
-        # name for our 'listener' node so that multiple listeners can
-        # run simultaneously.
-
-        # spin() simply keeps python from exiting until this node is stopped
-        rospy.spin()
-
-
-if __name__ == '__main__':
-    rospy.init_node('listener', anonymous=True)
-
-    while not rospy.is_shutdown():
-        try:
-
-            # while not rospy.is_shutdown():
-            listener = Listener()
-            pozyx_bridge.setup_client()
-            listener.run()
-
-        except rospy.ROSInterruptException:
-            pass
+# initialize the data container
+euler_angles = EulerAngles()
+# get the data, passing along the container
+print(pozyx)

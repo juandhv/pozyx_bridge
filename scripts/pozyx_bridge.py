@@ -19,10 +19,6 @@ HOST = '10.0.0.254'
 PORT = 1883
 TOPIC = 'tags'
 DURATION = 500
-logX = 0
-logY = 0
-logZ = 0
-tags = {"logX": logX, "logY": logY, "logZ": logZ}
 
 
 class PozyxBridge(object):
@@ -36,11 +32,12 @@ class PozyxBridge(object):
         self.taglist = rospy.get_param("/tag_list")
         self.paramdic = {}
         for i in self.taglist:
-            self.paramdic[rospy.get_param("/" + i + "/id")] = rospy.get_param("/" + i + "/name")
+            self.paramdic[rospy.get_param("/" + i + "/id")] = i
+        # rospy.loginfo("These tag are in tag list %s", self.paramdic)
         # Publisher
         self.client = mqtt.Client()  # create new instance
         self.pub = rospy.Publisher('uwb_sensor', TransformStamped, queue_size=10)
-        self.timer = rospy.Timer(rospy.Duration(1.0), self.time_record)
+        self.timer = rospy.Timer(rospy.Duration(0.1), self.time_record)
         self.br = tf2_ros.TransformBroadcaster()
 
     def time_record(self, event):

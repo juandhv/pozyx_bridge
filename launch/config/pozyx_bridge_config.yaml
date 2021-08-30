@@ -1,14 +1,12 @@
 frame_id: "world"
-tag_list: ["tag1","tag2"]
+tag_list: ["tag1","robot2"]
 tag1:
-  name: "tag1"
   child_frame_id: "pozyx/tag1"
-  id: 7761
+  id: 7762
 
-tag2:
-  name: "tag2"
-  child_frame_id: "pozyx/tag2"
-  id: 7541
+robot2:
+  child_frame_id: "pozyx/robot2"
+  id: 7546
   
 #tag3:
 #  name: "tag2"
