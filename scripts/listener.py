@@ -1,6 +1,6 @@
 from pypozyx import PozyxSerial, get_first_pozyx_serial_port, POZYX_SUCCESS, SingleRegister, EulerAngles, Acceleration
 # initalize the Pozyx as above
-from pypozyx import PozyxSerial, get_first_pozyx_serial_port
+
 
 serial_port = get_first_pozyx_serial_port()
 
