@@ -26,28 +26,27 @@ class PozyxBridge(object):
 
     def __init__(self):
         # Flags
-        self.is_data_available = False
+        self.is_data_available = False  # Set a Flag when useful data come system start record
         # Setting initial position
-        self.tagdic = {}
-        # self.index = 0
-        self.taglist = rospy.get_param("/tag_list")
-        self.paramdic = {}
-        self.tempdic = {}
-        for i in self.taglist:
+        self.tagdic = {}  # Dictionary to store active tag in POZYX system
+        self.taglist = rospy.get_param("/tag_list")  # get each tag's name from yaml file
+        self.paramdic = {}  # Dictionary for tags record in yaml file
+        self.tempdic = {}  # Dictionary to store last position of tag
+        for i in self.taglist:  # Load all information from tag into paramdic and tempdic
             self.paramdic[rospy.get_param("/" + i + "/id")] = i
             self.tempdic[rospy.get_param("/" + i + "/id")] = i
         rospy.loginfo("These tag are in tag list %s", self.paramdic)
-        # Publisher
+        # Publisher use MQTT clint
         self.client = mqtt.Client()  # create new instance
-        self.pub = rospy.Publisher('uwb_sensor', TransformStamped, queue_size=10)
-        self.timer = rospy.Timer(rospy.Duration(0.1), self.time_record)
-        self.br = tf2_ros.TransformBroadcaster()
+        self.pub = rospy.Publisher('uwb_sensor', TransformStamped, queue_size=10)  # Set up a ros publisher
+        self.timer = rospy.Timer(rospy.Duration(0.1), self.time_record)  # Set up a ros timer inorder to control
+        # frequency of publisher
+        self.br = tf2_ros.TransformBroadcaster()  # Set up a TF broadcaster
 
     def time_record(self, event):
         if not self.is_data_available is True:
             return
-        for i in self.tagdic.keys():
-            # rospy.loginfo(self.tagdic[i])
+        for i in self.tagdic.keys():  # Control frequency of publisher
             self.tagdic[i].header.stamp = rospy.Time.now()
             self.pub.publish(self.tagdic[i])
             self.br.sendTransform(self.tagdic[i])
@@ -68,7 +67,7 @@ class PozyxBridge(object):
             rate.sleep()
 
     def on_message(self, client, userdata, message):
-        datapack = json.loads(message.payload.decode())
+        datapack = json.loads(message.payload.decode())  # load MQTT data package from JSON type
         Id = int(datapack[0]['tagId'])
 
         # tagId = re.search(r'(\"tagId\"\:\")(\d+)', message.payload.decode())
@@ -76,100 +75,60 @@ class PozyxBridge(object):
         # y = re.search(r'(?:"y":)(-\d+|\d+)', message.payload.decode())
         # z = re.search(r'(?:"z":)(-\d+|\d+)', message.payload.decode())
         # Id = int(tagId.group(2))
-        # Writing warning here ---
-        # pozyx_bridge.error_report(Id)
-        # flag = False
-        # if Id not in self.paramdic.keys():
-        #     rospy.logwarn("Active tag %s is not define in Parameter Id!", Id)
-        # for i in self.paramdic.keys():
-        #     if i not in self.tagdic.keys():
-        #         flag = True
-        # if flag:
-        #     rospy.logwarn("Parameter Id %s are not apply on all active tags", self.paramdic.keys())
-        if Id not in self.paramdic.keys():
+
+        if Id not in self.paramdic.keys(): # Give an error if the tag is not define in yaml file
             rospy.logwarn("Active tag %s is not define in Parameter Id!", Id)
             for i in self.paramdic.keys():
-                if i not in self.tagdic.keys():
+                if i not in self.tagdic.keys(): # Give a warn that the tag information is incorrect
                     rospy.logwarn("Parameter Id %s are not active", i)
             return
         if Id not in self.tagdic.keys():
             rospy.loginfo("Tag %s is now active", Id)
-            transform_msg = TransformStamped()
+            transform_msg = TransformStamped()  # Set up a new TransformStamped for each coming data pack
             transform_msg.header.frame_id = rospy.get_param("/frame_id")
-            self.tagdic[Id] = transform_msg
+            self.tagdic[Id] = transform_msg # Let id be the key and transform_msg be value in tagdic
             temtag = self.paramdic[Id]
-            self.tagdic[Id].child_frame_id = rospy.get_param("/" + temtag + "/child_frame_id")
+            self.tagdic[Id].child_frame_id = rospy.get_param("/" + temtag + "/child_frame_id")  # Collect data from
+            # yaml file and sett up it into tagdic
             self.tempdic[Id] = {'x': 0, 'y': 0, 'z': 0, 'quaternion': {'x': 0.0, 'y': 0.0, 'z': 0.0, 'w': 1.0}}
         else:
-            if 'quaternion' in datapack[0]['data']['tagData'].keys():
-                try:
-                    x = datapack[0]['data']['coordinates']['x'] / 1000.0
-                    y = datapack[0]['data']['coordinates']['y'] / 1000.0
-                    z = datapack[0]['data']['coordinates']['z'] / 1000.0
+
+            try:
+                x = datapack[0]['data']['coordinates']['x'] / 1000.0                # Collect data from sensor
+                y = datapack[0]['data']['coordinates']['y'] / 1000.0
+                z = datapack[0]['data']['coordinates']['z'] / 1000.0
+
+                self.tempdic[Id]['x'] = x           # Store available data in tempdic
+                self.tempdic[Id]['y'] = y
+                self.tempdic[Id]['z'] = z
+
+                self.tagdic[Id].transform.translation.x = x
+                self.tagdic[Id].transform.translation.y = y
+                self.tagdic[Id].transform.translation.z = z
+
+                if not self.is_data_available:
+                    self.is_data_available = True
+
+                if 'quaternion' in datapack[0]['data']['tagData'].keys():   # Master tag will collect oration data
                     quaternion = datapack[0]['data']['tagData']['quaternion']
-
-                    self.tempdic[Id]['x'] = x
-                    self.tempdic[Id]['y'] = y
-                    self.tempdic[Id]['z'] = z
                     self.tempdic[Id]['quaternion'] = quaternion
-
-                    self.tagdic[Id].transform.translation.x = x
-                    self.tagdic[Id].transform.translation.y = y
-                    self.tagdic[Id].transform.translation.z = z
 
                     self.tagdic[Id].transform.rotation.x = quaternion['x']
                     self.tagdic[Id].transform.rotation.y = quaternion['y']
                     self.tagdic[Id].transform.rotation.z = quaternion['z']
                     self.tagdic[Id].transform.rotation.w = quaternion['w']
 
-                    if not self.is_data_available:
-                        self.is_data_available = True
-                except:
-                    self.tagdic[Id].transform.translation.x = self.tempdic[Id]['x']
-                    self.tagdic[Id].transform.translation.y = self.tempdic[Id]['y']
-                    self.tagdic[Id].transform.translation.z = self.tempdic[Id]['z']
+            except:
+                self.tagdic[Id].transform.translation.x = self.tempdic[Id]['x'] # If no available data come the dictionary will use data in tempdic
+                self.tagdic[Id].transform.translation.y = self.tempdic[Id]['y']
+                self.tagdic[Id].transform.translation.z = self.tempdic[Id]['z']
 
-                    self.tagdic[Id].transform.rotation.x = self.tempdic[Id]['quaternion']['x']
-                    self.tagdic[Id].transform.rotation.y = self.tempdic[Id]['quaternion']['y']
-                    self.tagdic[Id].transform.rotation.z = self.tempdic[Id]['quaternion']['z']
-                    self.tagdic[Id].transform.rotation.w = self.tempdic[Id]['quaternion']['w']
-            else:
-                try:
-                    x = datapack[0]['data']['coordinates']['x'] / 1000.0
-                    y = datapack[0]['data']['coordinates']['y'] / 1000.0
-                    z = datapack[0]['data']['coordinates']['z'] / 1000.0
+                self.tagdic[Id].transform.rotation.x = self.tempdic[Id]['quaternion']['x']
+                self.tagdic[Id].transform.rotation.y = self.tempdic[Id]['quaternion']['y']
+                self.tagdic[Id].transform.rotation.z = self.tempdic[Id]['quaternion']['z']
+                self.tagdic[Id].transform.rotation.w = self.tempdic[Id]['quaternion']['w']
 
-                    self.tempdic[Id]['x'] = x
-                    self.tempdic[Id]['y'] = y
-                    self.tempdic[Id]['z'] = z
-
-                    self.tagdic[Id].transform.translation.x = x
-                    self.tagdic[Id].transform.translation.y = y
-                    self.tagdic[Id].transform.translation.z = z
-                    self.tagdic[Id].transform.rotation.w = self.tempdic[Id]['quaternion']['w']
-                    
-                    if not self.is_data_available:
-                        self.is_data_available = True
-                except:
-                    self.tagdic[Id].transform.translation.x = self.tempdic[Id]['x']
-                    self.tagdic[Id].transform.translation.y = self.tempdic[Id]['y']
-                    self.tagdic[Id].transform.translation.z = self.tempdic[Id]['z']
-                    self.tagdic[Id].transform.rotation.w = self.tempdic[Id]['quaternion']['w']
-
-
-            # if x is not None:
-            # self.tagdic[Id].transform.translation.x = int(x.group(1)) / 1000.0
-            # self.tagdic[Id].transform.translation.y = int(y.group(1)) / 1000.0
-            # self.tagdic[Id].transform.translation.z = int(z.group(1)) / 1000.0
-            # self.tagdic[Id].transform.rotation.w = 1
-
-            # self.tagdic[Id].child_frame_id = self.tagdic[Id]["child_frame_id"]
-            # self.transform_msg.transform.translation.x = self.tagdic[Id]["logX"] / 1000.0
-            # self.transform_msg.transform.translation.y = self.tagdic[Id]["logY"] / 1000.0
-            # self.transform_msg.transform.translation.z = self.tagdic[Id]["logZ"] / 1000.0
-            # self.transform_msg.transform.rotation.w = 1
-
-        for i in self.paramdic.keys():
+        for i in self.paramdic.keys():    # Double check
             if i not in self.tagdic.keys():
                 rospy.logwarn("Parameter Id %s are not active", i)
 
