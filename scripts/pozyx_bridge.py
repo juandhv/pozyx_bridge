@@ -61,20 +61,14 @@ class PozyxBridge(object):
 
     def run(self):
         self.client.loop_start()  # start the loop
-        rate = rospy.Rate(10)  # 10hz
-
-        while not rospy.is_shutdown():
-            rate.sleep()
+        # rate = rospy.Rate(10)  # 10hz
+        rospy.spin()
+        # while not rospy.is_shutdown():
+        #     rate.sleep()
 
     def on_message(self, client, userdata, message):
         datapack = json.loads(message.payload.decode())  # load MQTT data package from JSON type
         Id = int(datapack[0]['tagId'])
-
-        # tagId = re.search(r'(\"tagId\"\:\")(\d+)', message.payload.decode())
-        # x = re.search(r'(?:"x":)(-\d+|\d+)', message.payload.decode())
-        # y = re.search(r'(?:"y":)(-\d+|\d+)', message.payload.decode())
-        # z = re.search(r'(?:"z":)(-\d+|\d+)', message.payload.decode())
-        # Id = int(tagId.group(2))
 
         if Id not in self.paramdic.keys(): # Give an error if the tag is not define in yaml file
             rospy.logwarn("Active tag %s is not define in Parameter Id!", Id)
@@ -88,7 +82,8 @@ class PozyxBridge(object):
             transform_msg.header.frame_id = rospy.get_param("/frame_id")
             self.tagdic[Id] = transform_msg # Let id be the key and transform_msg be value in tagdic
             temtag = self.paramdic[Id]
-            self.tagdic[Id].child_frame_id = rospy.get_param("/" + temtag + "/child_frame_id")  # Collect data from
+            self.tagdic[Id].child_frame_id = "/pozyx" + temtag  # Collect data from
+            self.tagdic[Id].transform.rotation.w = 1
             # yaml file and sett up it into tagdic
             self.tempdic[Id] = {'x': 0, 'y': 0, 'z': 0, 'quaternion': {'x': 0.0, 'y': 0.0, 'z': 0.0, 'w': 1.0}}
         else:
