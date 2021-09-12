@@ -15,5 +15,5 @@ id: \<Your tagId check by Pozyx procol \>
 id:  \<Your tagId check by Pozyx procol \> 
 
 Published topic  
-uwb_sensor  
+/uwb_sensor  
 /tf  
