@@ -5,7 +5,7 @@ Quick Start
 roslaunch pozxy_bridge configure.launch  
 
 Operation  
-Configur information in pozyx_bridge_config.yaml  
+Configur information in pozyx_bridge/launch/config/pozyx_bridge_config.yaml  
 
 tag_list: ["Your tag's name1","Your tag's name2"]  
 <You tag's name1>：  
@@ -16,3 +16,6 @@ id:  \<Your tagId check by Pozyx procol \>
 Published topic:  
 /uwb_sensor  
 /tf  
+
+Node:
+/pozyx_bridge  
