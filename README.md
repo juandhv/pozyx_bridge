@@ -3,7 +3,6 @@ This is a driver providing data from UWB Pozyx system.
 
 Quick Start   
 roslaunch pozxy_bridge configure.launch  
-You need to setting active tag information in pozyx_bridge_config.yaml  
 
 Operation  
 Configur information in pozyx_bridge_config.yaml  
@@ -14,6 +13,6 @@ id: \<Your tagId check by Pozyx procol \>
 <You tag's name2>:    
 id:  \<Your tagId check by Pozyx procol \> 
 
-Published topic  
+Published topic:  
 /uwb_sensor  
 /tf  
