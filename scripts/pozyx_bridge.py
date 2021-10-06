@@ -2,16 +2,9 @@
 # license removed for brevity
 import rospy
 import tf2_ros
-import rosparam
-
 import json
 import paho.mqtt.client as mqtt
 import time
-import sys
-import re
-import numpy as np
-from matplotlib.animation import FuncAnimation
-import csv
 
 from std_msgs.msg import String
 from geometry_msgs.msg import TransformStamped
