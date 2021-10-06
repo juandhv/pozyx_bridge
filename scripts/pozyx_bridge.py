@@ -79,8 +79,7 @@ class PozyxBridge(object):
             self.tagdic[Id].child_frame_id = "/pozyx" + temtag  # Collect data from
             self.tagdic[Id].transform.rotation.w = 1
             # yaml file and sett up it into tagdic
-            #self.tempdic[Id] = {'x': 0, 'y': 0, 'z': 0, 'quaternion': {'x': 0.0, 'y': 0.0, 'z': 0.0, 'w': 1.0}}
-            self.tempdic[Id] = {'x': 0, 'y': 0, 'z': 0, 'orientation':  {"x": 0, "y": 0, "z": 0}, 'quaternion': {'x': 0.0, 'y': 0.0, 'z': 0.0, 'w': 1.0}}
+            self.tempdic[Id] = {'x': 0, 'y': 0, 'z': 0, 'quaternion': {'x': 0.0, 'y': 0.0, 'z': 0.0, 'w': 1.0}}
 
         else:
 
@@ -97,20 +96,12 @@ class PozyxBridge(object):
                 self.tagdic[Id].transform.translation.y = y
                 self.tagdic[Id].transform.translation.z = z
 
-                print(datapack[0]['data']['tagData']['eulerAngles'])
-                orientation = datapack[0]['data']['tagData']['eulerAngles']
-                print(orientation['x'])
-
                 if not self.is_data_available:
                     self.is_data_available = True
 
                 if 'quaternion' in datapack[0]['data']['tagData'].keys():   # Master tag will collect oration data
                     quaternion = datapack[0]['data']['tagData']['quaternion']
-
-                    #quaternion = quaternion_from_euler(orientation["x"], orientation["y"], orientation["z"])
-                    print(quaternion)
                     self.tempdic[Id]['quaternion'] = quaternion
-                    # self.tempdic[Id]['quaternion'] = quaternion
 
                     self.tagdic[Id].transform.rotation.x = quaternion['z']
                     self.tagdic[Id].transform.rotation.y = quaternion['y']
