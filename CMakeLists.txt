@@ -105,11 +105,11 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
+  #INCLUDE_DIRS include
   LIBRARIES uwb_kit
   CATKIN_DEPENDS roscpp rospy std_msgs
-  DEPENDS system_lib
-CATKIN_DEPENDS message_runtime
+  #DEPENDS system_lib
+  CATKIN_DEPENDS message_runtime
 )
 
 ###########
@@ -162,7 +162,7 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-catkin_install_python(PROGRAMS scripts/pozyx_bridge.py scripts/listener.py
+catkin_install_python(PROGRAMS scripts/pozyx_bridge.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
