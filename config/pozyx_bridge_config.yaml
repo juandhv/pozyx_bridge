@@ -4,7 +4,6 @@ tag_list: ["tag1", "robot"]
 
 tag1:
   id: 7762
-  parent_frame: "base_footprint"
 
 robot:
   id: 30208
