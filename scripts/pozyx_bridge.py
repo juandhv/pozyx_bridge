@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
+import json
 import rospy
 import tf2_ros
-import json
 import paho.mqtt.client as mqtt
 from geometry_msgs.msg import TransformStamped
 
@@ -12,8 +12,19 @@ TOPIC = "tags"
 DURATION = 500
 
 
+def on_subscribe(client, userdata, mid, granted_qos):
+    """process to run when clients subscribes successfully to a topic"""
+    print("Subscribed to topic!")
+
+
+def on_connect(client, userdata, flags, rc):
+    """process to run when clients subscribes successfully to the broker server"""
+    print(mqtt.connack_string(rc))
+
+
 class PozyxBridge(object):
     """Connects Pozyx Gateway with ROS"""
+
     def __init__(self):
         # Flags
         self.is_data_available = (
@@ -42,22 +53,25 @@ class PozyxBridge(object):
         self._br = tf2_ros.TransformBroadcaster()  # Set up a TF broadcaster
 
     def time_record(self, event):
+        """publishes data and transform of tags"""
         if not self.is_data_available is True:
             return
-        for i in self.tagdic.keys():  # Control frequency of publisher
-            self.tagdic[i].header.stamp = rospy.Time.now()
-            self.pub.publish(self.tagdic[i])
-            self._br.sendTransform(self.tagdic[i])
+        for i in self.tagdic.items():  # Control frequency of publisher
+            i[1].header.stamp = rospy.Time.now()
+            self.pub.publish(i[1])
+            self._br.sendTransform(i[1])
 
     # MQTT client setup
     def setup_client(self):
-        self.client.on_connect = self.on_connect
+        """connects MQTT broker"""
+        self.client.on_connect = on_connect
         self.client.on_message = self.on_message  # attach function to callback
-        self.client.on_subscribe = self.on_subscribe
+        self.client.on_subscribe = on_subscribe
         self.client.connect(HOST, port=PORT)  # connect to host
         self.client.subscribe(TOPIC)  # subscribe to topic
 
     def run(self):
+        """loops and mantains the node"""
         self.client.loop_start()  # start the loop
         # rate = rospy.Rate(10)  # 10hz
         rospy.spin()
@@ -65,31 +79,32 @@ class PozyxBridge(object):
         #     rate.sleep()
 
     def on_message(self, client, userdata, message):
+        """process to run when message arrives"""
         datapack = json.loads(
             message.payload.decode()
         )  # load MQTT data package from JSON type
-        Id = int(datapack[0]["tagId"])
+        _id = int(datapack[0]["tagId"])
 
-        if Id not in self.paramdic.keys():
-            rospy.logwarn("Active tag %s is not define in Parameter Id!", Id)
-            for i in self.paramdic.keys():
-                if i not in self.tagdic.keys():
+        if _id not in self.paramdic.keys():
+            rospy.logwarn("Active tag %s is not define in Parameter Id!", _id)
+            for i in self.paramdic:
+                if i not in self.tagdic:
                     rospy.logwarn("Parameter Id %s are not active", i)
             return
-        if Id not in self.tagdic.keys():
-            rospy.loginfo("Tag %s is now active", Id)
+        if _id not in self.tagdic:
+            rospy.loginfo("Tag %s is now active", _id)
             transform_msg = (
                 TransformStamped()
             )  # Set up a new TransformStamped for each coming data pack
             transform_msg.header.frame_id = rospy.get_param("/frame_id")
             self.tagdic[
-                Id
+                _id
             ] = transform_msg  # Let id be the key and transform_msg be value in tagdic
-            temtag = self.paramdic[Id]
-            self.tagdic[Id].child_frame_id = "/pozyx" + temtag  # Collect data from
-            self.tagdic[Id].transform.rotation.w = 1
+            temtag = self.paramdic[_id]
+            self.tagdic[_id].child_frame_id = "/pozyx" + temtag  # Collect data from
+            self.tagdic[_id].transform.rotation.w = 1
             # yaml file and sett up it into tagdic
-            self.tempdic[Id] = {
+            self.tempdic[_id] = {
                 "x": 0,
                 "y": 0,
                 "z": 0,
@@ -99,61 +114,55 @@ class PozyxBridge(object):
         else:
 
             try:
-                x = (
+                _x = (
                     datapack[0]["data"]["coordinates"]["x"] / 1000.0
                 )  # Collect data from sensor
-                y = datapack[0]["data"]["coordinates"]["y"] / 1000.0
-                z = datapack[0]["data"]["coordinates"]["z"] / 1000.0
+                _y = datapack[0]["data"]["coordinates"]["y"] / 1000.0
+                _z = datapack[0]["data"]["coordinates"]["z"] / 1000.0
 
-                self.tempdic[Id]["x"] = x  # Store available data in tempdic
-                self.tempdic[Id]["y"] = y
-                self.tempdic[Id]["z"] = z
+                self.tempdic[_id]["x"] = _x  # Store available data in tempdic
+                self.tempdic[_id]["y"] = _y
+                self.tempdic[_id]["z"] = _z
 
-                self.tagdic[Id].transform.translation.x = x
-                self.tagdic[Id].transform.translation.y = y
-                self.tagdic[Id].transform.translation.z = z
+                self.tagdic[_id].transform.translation.x = _x
+                self.tagdic[_id].transform.translation.y = _y
+                self.tagdic[_id].transform.translation.z = _z
 
                 if not self.is_data_available:
                     self.is_data_available = True
 
                 if "quaternion" in datapack[0]["data"]["tagData"].keys():
                     quaternion = datapack[0]["data"]["tagData"]["quaternion"]
-                    self.tempdic[Id]["quaternion"] = quaternion
+                    self.tempdic[_id]["quaternion"] = quaternion
 
-                    self.tagdic[Id].transform.rotation.x = quaternion["z"]
-                    self.tagdic[Id].transform.rotation.y = quaternion["y"]
-                    self.tagdic[Id].transform.rotation.z = quaternion["x"]
-                    self.tagdic[Id].transform.rotation.w = quaternion["w"]
+                    self.tagdic[_id].transform.rotation.x = quaternion["z"]
+                    self.tagdic[_id].transform.rotation.y = quaternion["y"]
+                    self.tagdic[_id].transform.rotation.z = quaternion["x"]
+                    self.tagdic[_id].transform.rotation.w = quaternion["w"]
 
             except:
-                self.tagdic[Id].transform.translation.x = self.tempdic[Id][
+                self.tagdic[_id].transform.translation.x = self.tempdic[_id][
                     "x"
                 ]  # If no available data come the dictionary will use data in tempdic
-                self.tagdic[Id].transform.translation.y = self.tempdic[Id]["y"]
-                self.tagdic[Id].transform.translation.z = self.tempdic[Id]["z"]
-                print(self.tempdic[Id]["quaternion"])
-                self.tagdic[Id].transform.rotation.x = self.tempdic[Id]["quaternion"][
+                self.tagdic[_id].transform.translation.y = self.tempdic[_id]["y"]
+                self.tagdic[_id].transform.translation.z = self.tempdic[_id]["z"]
+                print(self.tempdic[_id]["quaternion"])
+                self.tagdic[_id].transform.rotation.x = self.tempdic[_id]["quaternion"][
                     "z"
                 ]
-                self.tagdic[Id].transform.rotation.y = self.tempdic[Id]["quaternion"][
+                self.tagdic[_id].transform.rotation.y = self.tempdic[_id]["quaternion"][
                     "y"
                 ]
-                self.tagdic[Id].transform.rotation.z = self.tempdic[Id]["quaternion"][
+                self.tagdic[_id].transform.rotation.z = self.tempdic[_id]["quaternion"][
                     "x"
                 ]
-                self.tagdic[Id].transform.rotation.w = self.tempdic[Id]["quaternion"][
+                self.tagdic[_id].transform.rotation.w = self.tempdic[_id]["quaternion"][
                     "w"
                 ]
 
-        for i in self.paramdic.keys():  # Double check
-            if i not in self.tagdic.keys():
+        for i in self.paramdic:
+            if i not in self.tagdic:
                 rospy.logwarn("Parameter Id %s are not active", i)
-
-    def on_connect(self, client, userdata, flags, rc):
-        print(mqtt.connack_string(rc))
-
-    def on_subscribe(self, client, userdata, mid, granted_qos):
-        print("Subscribed to topic!")
 
 
 if __name__ == "__main__":
