@@ -1,4 +1,5 @@
 # pozyx_bridge
+
 This ROS package aims to provide a connection from the UWB Pozyx system to a ROS server. This package contains a node to connect via MQTT to the Pozyx gateway and then publish the transform of the tags' and their pose in a topic.
 
 ## Dependencies
@@ -28,13 +29,18 @@ roslaunch pozxy_bridge pozyx_bridge_demo.launch
 * `tag_list`: list of tag names as strings.
 * `id`: tag id configured previously, defined as a number.
 
-
 ## API Reference
 
 ### Published Topics
 
 #### uwb_sensor ([geometry_msgs/TransformStamped](http://docs.ros.org/en/api/geometry_msgs/html/msg/TransformStamped.html))
+
 Position and orientation of the tags. All the tags are published individually.
+
+## To Do
+
+* Express unavailable data in published message.
+* Change TransformStamped to Array TransformStamped.
 
 <!-- ## Operation  
 Configur information in pozyx_bridge/launch/config/pozyx_bridge_config.yaml  
