@@ -37,20 +37,17 @@ class PozyxBridge(object):
         rospy.loginfo("These tag are in tag list %s", self.paramdic)
 
         self.client = mqtt.Client()
-        self.pub = rospy.Publisher(
-            "uwb_sensor", TransformStamped, queue_size=10
-        )  # Set up a ros publisher
+        self.pub = rospy.Publisher("uwb_sensor", TransformStamped, queue_size=10)
         self.timer = rospy.Timer(
             rospy.Duration(1 / int(rospy.get_param("/frequency"))), self.time_record
-        )  # Set up a ros timer inorder to control
-        # frequency of publisher
-        self._br = tf2_ros.TransformBroadcaster()  # Set up a TF broadcaster
+        )  # periodic function execution
+        self._br = tf2_ros.TransformBroadcaster()
 
     def time_record(self, event):
         """publishes data and transform of tags"""
         if not self.is_data_available is True:
             return
-        for i in self.tagdic.items():  # Control frequency of publisher
+        for i in self.tagdic.items():
             i[1].header.stamp = rospy.Time.now()
             self.pub.publish(i[1])
             self._br.sendTransform(i[1])
@@ -59,24 +56,19 @@ class PozyxBridge(object):
     def setup_client(self):
         """connects MQTT broker"""
         self.client.on_connect = on_connect
-        self.client.on_message = self.on_message  # attach function to callback
+        self.client.on_message = self.on_message
         self.client.on_subscribe = on_subscribe
-        self.client.connect(HOST, port=PORT)  # connect to host
-        self.client.subscribe(TOPIC)  # subscribe to topic
+        self.client.connect(HOST, port=PORT)
+        self.client.subscribe(TOPIC)
 
     def run(self):
         """loops and mantains the node"""
-        self.client.loop_start()  # start the loop
-        # rate = rospy.Rate(10)  # 10hz
+        self.client.loop_start()
         rospy.spin()
-        # while not rospy.is_shutdown():
-        #     rate.sleep()
 
     def on_message(self, client, userdata, message):
         """process to run when message arrives"""
-        datapack = json.loads(
-            message.payload.decode()
-        )  # load MQTT data package from JSON type
+        datapack = json.loads(message.payload.decode())
         _id = int(datapack[0]["tagId"])
 
         if _id not in self.paramdic.keys():
@@ -87,17 +79,12 @@ class PozyxBridge(object):
             return
         if _id not in self.tagdic:
             rospy.loginfo("Tag %s is now active", _id)
-            transform_msg = (
-                TransformStamped()
-            )  # Set up a new TransformStamped for each coming data pack
+            transform_msg = TransformStamped()
             transform_msg.header.frame_id = rospy.get_param("/frame_id")
-            self.tagdic[
-                _id
-            ] = transform_msg  # Let id be the key and transform_msg be value in tagdic
+            self.tagdic[_id] = transform_msg
             temtag = self.paramdic[_id]
-            self.tagdic[_id].child_frame_id = "/pozyx" + temtag  # Collect data from
+            self.tagdic[_id].child_frame_id = "/pozyx" + temtag
             self.tagdic[_id].transform.rotation.w = 1
-            # yaml file and sett up it into tagdic
             self.tempdic[_id] = {
                 "x": 0,
                 "y": 0,
@@ -108,13 +95,12 @@ class PozyxBridge(object):
         else:
 
             try:
-                _x = (
-                    datapack[0]["data"]["coordinates"]["x"] / 1000.0
-                )  # Collect data from sensor
+                # values in meters
+                _x = datapack[0]["data"]["coordinates"]["x"] / 1000.0
                 _y = datapack[0]["data"]["coordinates"]["y"] / 1000.0
                 _z = datapack[0]["data"]["coordinates"]["z"] / 1000.0
 
-                self.tempdic[_id]["x"] = _x  # Store available data in tempdic
+                self.tempdic[_id]["x"] = _x
                 self.tempdic[_id]["y"] = _y
                 self.tempdic[_id]["z"] = _z
 
@@ -135,12 +121,11 @@ class PozyxBridge(object):
                     self.tagdic[_id].transform.rotation.w = quaternion["w"]
 
             except:
-                self.tagdic[_id].transform.translation.x = self.tempdic[_id][
-                    "x"
-                ]  # If no available data come the dictionary will use data in tempdic
+                # use of last available data
+                self.tagdic[_id].transform.translation.x = self.tempdic[_id]["x"]
                 self.tagdic[_id].transform.translation.y = self.tempdic[_id]["y"]
                 self.tagdic[_id].transform.translation.z = self.tempdic[_id]["z"]
-                print(self.tempdic[_id]["quaternion"])
+                # print(self.tempdic[_id]["quaternion"])
                 self.tagdic[_id].transform.rotation.x = self.tempdic[_id]["quaternion"][
                     "z"
                 ]
