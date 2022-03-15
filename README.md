@@ -33,7 +33,7 @@ roslaunch pozxy_bridge pozyx_bridge_demo.launch
 
 ### Published Topics
 
-#### uwb_sensor (geometry_msgs/TransformStamped)
+#### uwb_sensor ([geometry_msgs/TransformStamped](http://docs.ros.org/en/api/geometry_msgs/html/msg/TransformStamped.html))
 Position and orientation of the tags. All the tags are published individually.
 
 <!-- ## Operation  
