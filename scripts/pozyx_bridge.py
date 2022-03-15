@@ -9,7 +9,6 @@ from geometry_msgs.msg import TransformStamped
 HOST = "10.0.0.254"
 PORT = 1883
 TOPIC = "tags"
-DURATION = 500
 
 
 def on_subscribe(client, userdata, mid, granted_qos):
@@ -27,27 +26,22 @@ class PozyxBridge(object):
 
     def __init__(self):
         # Flags
-        self.is_data_available = (
-            False  # Set a Flag when useful data come system start record
-        )
-        # Setting initial position
-        self.tagdic = {}  # Dictionary to store active tag in POZYX system
-        self.taglist = rospy.get_param(
-            "/tag_list"
-        )  # get each tag's name from yaml file
-        self.paramdic = {}  # Dictionary for tags record in yaml file
-        self.tempdic = {}  # Dictionary to store last position of tag
+        self.is_data_available = False
+        self.tagdic = {}  # tags information
+        self.taglist = rospy.get_param("/tag_list")  # tag's names
+        self.paramdic = {}
+        self.tempdic = {}  # last tags data
         for i in self.taglist:
             self.paramdic[rospy.get_param("/" + i + "/id")] = i
             self.tempdic[rospy.get_param("/" + i + "/id")] = i
         rospy.loginfo("These tag are in tag list %s", self.paramdic)
-        # Publisher use MQTT client
-        self.client = mqtt.Client()  # create new instance
+
+        self.client = mqtt.Client()
         self.pub = rospy.Publisher(
             "uwb_sensor", TransformStamped, queue_size=10
         )  # Set up a ros publisher
         self.timer = rospy.Timer(
-            rospy.Duration(0.25), self.time_record
+            rospy.Duration(1 / int(rospy.get_param("/frequency"))), self.time_record
         )  # Set up a ros timer inorder to control
         # frequency of publisher
         self._br = tf2_ros.TransformBroadcaster()  # Set up a TF broadcaster
