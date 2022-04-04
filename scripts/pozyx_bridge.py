@@ -124,8 +124,10 @@ class PozyxBridge(object):
                     self.tagdic[_id].transform.transform.rotation.y = quaternion["y"]
                     self.tagdic[_id].transform.transform.rotation.z = quaternion["x"]
                     self.tagdic[_id].transform.transform.rotation.w = quaternion["w"]
+                
+                self.tagdic[_id] = 0 # 0 data is updated
 
-            except:
+            except KeyError:
                 # use of last available data
                 self.tagdic[_id].transform.transform.translation.x = self.tempdic[_id]["x"]
                 self.tagdic[_id].transform.transform.translation.y = self.tempdic[_id]["y"]
@@ -143,6 +145,7 @@ class PozyxBridge(object):
                 self.tagdic[_id].transform.transform.rotation.w = self.tempdic[_id]["quaternion"][
                     "w"
                 ]
+                self.tagdic[_id].updated = 1 # 1 data is not updated
 
         for i in self.paramdic:
             if i not in self.tagdic:
