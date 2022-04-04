@@ -4,12 +4,11 @@ import json
 import rospy
 import tf2_ros
 import paho.mqtt.client as mqtt
-from geometry_msgs.msg import TransformStamped
+from pozyx_bridge.msg import UwbTransformStamped, UwbTransformStampedArray
 
 HOST = "10.0.0.254"
 PORT = 1883
 TOPIC = "tags"
-
 
 def on_subscribe(client, userdata, mid, granted_qos):
     """process to run when clients subscribes successfully to a topic"""
@@ -37,7 +36,7 @@ class PozyxBridge(object):
         rospy.loginfo("These tag are in tag list %s", self.paramdic)
 
         self.client = mqtt.Client()
-        self.pub = rospy.Publisher("uwb_sensor", TransformStamped, queue_size=10)
+        self.pub = rospy.Publisher("uwb_sensor", UwbTransformStampedArray, queue_size=10)
         self.timer = rospy.Timer(
             rospy.Duration(1 / float(rospy.get_param("/frequency", 50))),
             self.time_record,
@@ -48,10 +47,16 @@ class PozyxBridge(object):
         """publishes data and transform of tags"""
         if not self.is_data_available is True:
             return
+
+        transform_stamped_array = []
         for i in self.tagdic.items():
             i[1].header.stamp = rospy.Time.now()
-            self.pub.publish(i[1])
-            self._br.sendTransform(i[1])
+            transform_stamped_array.append(i[1])
+            self._br.sendTransform(i[1].transform)
+
+        transform_stamped_array_msg = UwbTransformStampedArray()
+        transform_stamped_array_msg.transforms_array = transform_stamped_array
+        self.pub.publish(transform_stamped_array_msg)
 
     # MQTT client setup
     def setup_client(self):
@@ -80,12 +85,12 @@ class PozyxBridge(object):
             return
         if _id not in self.tagdic:
             rospy.loginfo("Tag %s is now active", _id)
-            transform_msg = TransformStamped()
-            transform_msg.header.frame_id = rospy.get_param("/frame_id")
+            transform_msg = UwbTransformStamped()
+            transform_msg.transform.header.frame_id = rospy.get_param("/frame_id")
             self.tagdic[_id] = transform_msg
             temtag = self.paramdic[_id]
-            self.tagdic[_id].child_frame_id = "/pozyx" + temtag
-            self.tagdic[_id].transform.rotation.w = 1
+            self.tagdic[_id].transform.child_frame_id = "/pozyx" + temtag
+            self.tagdic[_id].transform.transform.rotation.w = 1
             self.tempdic[_id] = {
                 "x": 0,
                 "y": 0,
@@ -104,9 +109,9 @@ class PozyxBridge(object):
                 self.tempdic[_id]["y"] = _y
                 self.tempdic[_id]["z"] = _z
 
-                self.tagdic[_id].transform.translation.x = _x
-                self.tagdic[_id].transform.translation.y = _y
-                self.tagdic[_id].transform.translation.z = _z
+                self.tagdic[_id].transform.transform.translation.x = _x
+                self.tagdic[_id].transform.transform.translation.y = _y
+                self.tagdic[_id].transform.transform.translation.z = _z
 
                 if not self.is_data_available:
                     self.is_data_available = True
@@ -115,27 +120,27 @@ class PozyxBridge(object):
                     quaternion = datapack[0]["data"]["tagData"]["quaternion"]
                     self.tempdic[_id]["quaternion"] = quaternion
 
-                    self.tagdic[_id].transform.rotation.x = quaternion["z"]
-                    self.tagdic[_id].transform.rotation.y = quaternion["y"]
-                    self.tagdic[_id].transform.rotation.z = quaternion["x"]
-                    self.tagdic[_id].transform.rotation.w = quaternion["w"]
+                    self.tagdic[_id].transform.transform.rotation.x = quaternion["z"]
+                    self.tagdic[_id].transform.transform.rotation.y = quaternion["y"]
+                    self.tagdic[_id].transform.transform.rotation.z = quaternion["x"]
+                    self.tagdic[_id].transform.transform.rotation.w = quaternion["w"]
 
             except:
                 # use of last available data
-                self.tagdic[_id].transform.translation.x = self.tempdic[_id]["x"]
-                self.tagdic[_id].transform.translation.y = self.tempdic[_id]["y"]
-                self.tagdic[_id].transform.translation.z = self.tempdic[_id]["z"]
+                self.tagdic[_id].transform.transform.translation.x = self.tempdic[_id]["x"]
+                self.tagdic[_id].transform.transform.translation.y = self.tempdic[_id]["y"]
+                self.tagdic[_id].transform.transform.translation.z = self.tempdic[_id]["z"]
                 # print(self.tempdic[_id]["quaternion"])
-                self.tagdic[_id].transform.rotation.x = self.tempdic[_id]["quaternion"][
+                self.tagdic[_id].transform.transform.rotation.x = self.tempdic[_id]["quaternion"][
                     "z"
                 ]
-                self.tagdic[_id].transform.rotation.y = self.tempdic[_id]["quaternion"][
+                self.tagdic[_id].transform.transform.rotation.y = self.tempdic[_id]["quaternion"][
                     "y"
                 ]
-                self.tagdic[_id].transform.rotation.z = self.tempdic[_id]["quaternion"][
+                self.tagdic[_id].transform.transform.rotation.z = self.tempdic[_id]["quaternion"][
                     "x"
                 ]
-                self.tagdic[_id].transform.rotation.w = self.tempdic[_id]["quaternion"][
+                self.tagdic[_id].transform.transform.rotation.w = self.tempdic[_id]["quaternion"][
                     "w"
                 ]
 
