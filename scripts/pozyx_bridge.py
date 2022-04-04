@@ -39,7 +39,8 @@ class PozyxBridge(object):
         self.client = mqtt.Client()
         self.pub = rospy.Publisher("uwb_sensor", TransformStamped, queue_size=10)
         self.timer = rospy.Timer(
-            rospy.Duration(1 / int(rospy.get_param("/frequency"))), self.time_record
+            rospy.Duration(1 / float(rospy.get_param("/frequency", 50))),
+            self.time_record,
         )  # periodic function execution
         self._br = tf2_ros.TransformBroadcaster()
 
@@ -93,7 +94,6 @@ class PozyxBridge(object):
             }
 
         else:
-
             try:
                 # values in meters
                 _x = datapack[0]["data"]["coordinates"]["x"] / 1000.0
