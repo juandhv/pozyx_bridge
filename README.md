@@ -19,7 +19,7 @@ Then change the config file path in `pozyx_bridge_demo.launch`.
 Finally run:
 
 ```` bash
-roslaunch pozxy_bridge pozyx_bridge_demo.launch  
+roslaunch pozyx_bridge pozyx_bridge_demo.launch  
 ````
 
 ## Configuration Parameters
