@@ -37,10 +37,6 @@ roslaunch pozyx_bridge pozyx_bridge_demo.launch
 
 Position and orientation of the tags. All the tags are published individually.
 
-## To Do
-
-* Express unavailable data in published message.
-* Change TransformStamped to Array TransformStamped.
 
 <!-- ## Operation  
 Configur information in pozyx_bridge/launch/config/pozyx_bridge_config.yaml  
