@@ -73,7 +73,8 @@ add_message_files(
 generate_messages(
    DEPENDENCIES
    std_msgs
-   geometry_msgs	
+   geometry_msgs
+
 )
 
 ################################################
@@ -108,9 +109,7 @@ generate_messages(
 catkin_package(
   #INCLUDE_DIRS include
   LIBRARIES uwb_kit
-  CATKIN_DEPENDS roscpp rospy std_msgs
-  #DEPENDS system_lib
-  CATKIN_DEPENDS message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
 )
 
 ###########
