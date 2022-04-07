@@ -4,7 +4,7 @@ import json
 import rospy
 import tf2_ros
 import paho.mqtt.client as mqtt
-from pozyx_bridge.msg import UwbTransformStamped, UwbTransformStampedArray
+from pozyx_msgs.msg import UwbTransformStamped, UwbTransformStampedArray
 
 HOST = "10.0.0.254"
 PORT = 1883
