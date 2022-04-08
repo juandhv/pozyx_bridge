@@ -50,7 +50,7 @@ class PozyxBridge(object):
 
         transform_stamped_array = []
         for i in self.tagdic.items():
-            i[1].header.stamp = rospy.Time.now()
+            i[1].transform.header.stamp = rospy.Time.now()
             transform_stamped_array.append(i[1])
             self._br.sendTransform(i[1].transform)
 
@@ -77,6 +77,7 @@ class PozyxBridge(object):
         datapack = json.loads(message.payload.decode())
         _id = int(datapack[0]["tagId"])
 
+
         if _id not in self.paramdic.keys():
             rospy.logwarn("Active tag %s is not define in Parameter Id!", _id)
             for i in self.paramdic:
@@ -97,7 +98,6 @@ class PozyxBridge(object):
                 "z": 0,
                 "quaternion": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0},
             }
-
         else:
             try:
                 # values in meters
@@ -125,7 +125,7 @@ class PozyxBridge(object):
                     self.tagdic[_id].transform.transform.rotation.z = quaternion["x"]
                     self.tagdic[_id].transform.transform.rotation.w = quaternion["w"]
                 
-                self.tagdic[_id] = 0 # 0 data is updated
+                self.tagdic[_id].updated = 1 # 1 data is updated
 
             except KeyError:
                 # use of last available data
@@ -145,7 +145,7 @@ class PozyxBridge(object):
                 self.tagdic[_id].transform.transform.rotation.w = self.tempdic[_id]["quaternion"][
                     "w"
                 ]
-                self.tagdic[_id].updated = 1 # 1 data is not updated
+                self.tagdic[_id].updated = 0 # 0 data is not updated
 
         for i in self.paramdic:
             if i not in self.tagdic:
