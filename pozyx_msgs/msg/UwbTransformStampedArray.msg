@@ -1,1 +1,1 @@
-pozyx_bridge/UwbTransformStamped[] transforms_array
+UwbTransformStamped[] transforms_array

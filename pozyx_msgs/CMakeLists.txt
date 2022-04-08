@@ -52,7 +52,7 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    UwbTransformStamped.msg
-   #UwbTransformStampedArray.msg
+   UwbTransformStampedArray.msg
  )
 
 ## Generate services in the 'srv' folder
