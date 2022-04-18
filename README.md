@@ -1,6 +1,6 @@
 # pozyx_bridge
 
-This repository aims to establish communication between a pozyx gateway with ROS. 
+This repository aims to establish communication between a pozyx gateway with ROS.
 
 It has been divided in the following packages:
 

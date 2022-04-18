@@ -39,6 +39,11 @@ roslaunch pozyx_bridge pozyx_bridge_demo.launch
 
 Position and orientation of the tags. All the tags are published individually.
 
+### Recommended settings
+
+For indoor small spaces, the pozyx system needs to be configured to be accurate. Till today, we have identified that the best setting corresponds to the following:
+
+<!-- TODO: add images of the configurations -->
 
 <!-- ## Operation  
 Configur information in pozyx_bridge/launch/config/pozyx_bridge_config.yaml  
