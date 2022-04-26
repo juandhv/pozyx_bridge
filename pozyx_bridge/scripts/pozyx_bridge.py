@@ -5,9 +5,10 @@ import rospy
 import tf2_ros
 import paho.mqtt.client as mqtt
 from pozyx_msgs.msg import UwbTransformStamped, UwbTransformStampedArray
+import pprint
 
-HOST = "10.0.0.254"
-PORT = 1883
+HOST = str(rospy.get_param("/gateway_ip", "10.0.0.254"))
+PORT = int(rospy.get_param("/gateway_port", 1883))
 TOPIC = "tags"
 
 def on_subscribe(client, userdata, mid, granted_qos):
@@ -77,6 +78,9 @@ class PozyxBridge(object):
         datapack = json.loads(message.payload.decode())
         _id = int(datapack[0]["tagId"])
 
+
+        print("#####################")
+        pprint.pprint(datapack)
 
         if _id not in self.paramdic.keys():
             rospy.logwarn("Active tag %s is not define in Parameter Id!", _id)

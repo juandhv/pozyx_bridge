@@ -1,4 +1,6 @@
 frame_id: "world"
+gateway_ip: "10.0.0.254"
+gateway_port: 1883
 frequency: 40
 tag_list: ["tag1", "robot"]
 
