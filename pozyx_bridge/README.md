@@ -43,7 +43,13 @@ Position and orientation of the tags. All the tags are published individually.
 
 For indoor small spaces, the pozyx system needs to be configured to be accurate. Till today, we have identified that the best setting corresponds to the following:
 
-<!-- TODO: add images of the configurations -->
+#### Positioning
+
+![positioning_settings](https://i.imgur.com/Ufd0NOF.png)
+
+#### UWB
+
+![uwb_settings](https://i.imgur.com/ZAuba7D.png)
 
 <!-- ## Operation  
 Configur information in pozyx_bridge/launch/config/pozyx_bridge_config.yaml  
@@ -60,5 +66,3 @@ Published topic:
 
 Node:  
 /pozyx_bridge   -->
-
-
