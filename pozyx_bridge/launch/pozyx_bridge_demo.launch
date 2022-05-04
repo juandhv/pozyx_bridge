@@ -1,0 +1,5 @@
+<launch>
+	<rosparam command="load" file="$(find pozyx_bridge)/config/pozyx_bridge_config.yaml" />
+	<node name="pozyx_bridge" pkg="pozyx_bridge" type="pozyx_bridge.py" output="screen" />
+</launch>
+	

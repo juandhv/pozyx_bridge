@@ -1,21 +1,8 @@
 # pozyx_bridge
-This is a driver providing data from UWB Pozyx system. 
 
-Quick Start   
-roslaunch pozxy_bridge configure.launch  
+This repository aims to establish communication between a pozyx gateway with ROS.
 
-Operation  
-Configur information in pozyx_bridge/launch/config/pozyx_bridge_config.yaml  
+It has been divided in the following packages:
 
-tag_list: ["Your tag's name1","Your tag's name2"]  
-<You tag's name1>：  
-id: \<Your tagId check by Pozyx procol \>  
-<You tag's name2>:    
-id:  \<Your tagId check by Pozyx procol \> 
-
-Published topic:  
-/uwb_sensor  
-/tf  
-
-Node:  
-/pozyx_bridge  
+- `pozyx_msgs`: stores the needed messages in order to send the pozyx tags information to ROS topics.
+- `pozyx_bridge`: has the code to host the connection between ROS and the pozyx gateway by retrieving the information using MQTT.
